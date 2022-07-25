@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Speed Test</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <p class="logo">⌨️ type<span>speed</span></p>
+    <p class="best" title="Your best result at these settings">
+      Best: <strong id="best-wpm">–</strong> wpm
+    </p>
+  </header>
+
+  <main class="container">
+    <!-- Settings: what to type and for how long -->
+    <section class="settings" aria-label="Test settings">
+      <div class="settings__group" role="group" aria-label="Mode">
+        <button type="button" class="chip" data-mode="words" aria-pressed="true">words</button>
+        <button type="button" class="chip" data-mode="quote" aria-pressed="false">quote</button>
+      </div>
+
+      <!-- Only for "words": a quote runs until you finish it -->
+      <div id="duration-group" class="settings__group" role="group" aria-label="Time limit">
+        <button type="button" class="chip" data-duration="15" aria-pressed="false">15s</button>
+        <button type="button" class="chip" data-duration="30" aria-pressed="true">30s</button>
+        <button type="button" class="chip" data-duration="60" aria-pressed="false">60s</button>
+      </div>
+    </section>
+
+    <!-- The test -->
+    <section id="test" class="test" aria-label="Typing test">
+      <!-- Live numbers while you type -->
+      <div class="live-stats" aria-hidden="true">
+        <span><strong id="live-time">30</strong></span>
+        <span><strong id="live-wpm">0</strong> wpm</span>
+        <span><strong id="live-accuracy">100</strong>%</span>
+      </div>
+
+      <div class="typing-area">
+        <!-- The words, one <span> per letter (added by JavaScript).
+             aria-hidden: letter-by-letter spans are noise for screen
+             readers, so they get the plain text below instead. -->
+        <div id="words" class="words" aria-hidden="true"></div>
+        <p id="target-text" class="visually-hidden"></p>
+
+        <!-- The real input. It's invisible and sits on top of the words:
+             phones only show a keyboard for a real input, and it handles
+             things like accented letters for us. -->
+        <input type="text" id="typing-input" class="typing-input"
+               aria-label="Type the text shown"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+
+        <!-- Shown when the input loses focus, so typing doesn't go nowhere -->
+        <button type="button" id="focus-hint" class="focus-hint" hidden>
+          👆 Click here or press any key to continue
+        </button>
+      </div>
+
+      <div class="test__actions">
+        <button type="button" id="restart-btn" class="icon-btn" aria-label="Restart test" title="Restart (Esc)">↻</button>
+      </div>
+    </section>
+
+    <!-- Results, shown when the time is up or the quote is finished -->
+    <section id="results" class="results" aria-labelledby="results-title" hidden>
+      <h1 id="results-title" class="visually-hidden">Results</h1>
+
+      <div class="results__main">
+        <div class="results__big">
+          <p class="results__label">wpm</p>
+          <p id="result-wpm" class="results__value"></p>
+        </div>
+        <div class="results__big">
+          <p class="results__label">accuracy</p>
+          <p id="result-accuracy" class="results__value"></p>
+        </div>
+        <p id="new-best" class="results__badge" hidden>🏆 New personal best!</p>
+      </div>
+
+      <!-- Words per minute over the test, drawn by JavaScript -->
+      <figure class="chart">
+        <svg id="chart" class="chart__svg" role="img" aria-labelledby="chart-caption"></svg>
+        <figcaption id="chart-caption" class="chart__caption">Speed during the test</figcaption>
+      </figure>
+
+      <!-- <dl>: a list of names and values, the right element for stats -->
+      <dl class="results__details">
+        <div>
+          <dt>raw</dt>
+          <dd id="result-raw"></dd>
+        </div>
+        <div>
+          <dt title="correct / incorrect / extra / missed">characters</dt>
+          <dd id="result-chars"></dd>
+        </div>
+        <div>
+          <dt>time</dt>
+          <dd id="result-time"></dd>
+        </div>
+        <div>
+          <dt>mode</dt>
+          <dd id="result-mode"></dd>
+        </div>
+      </dl>
+
+      <button type="button" id="again-btn" class="btn">↻ Try again</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><kbd>Esc</kbd> restart · <kbd>Tab</kbd> then <kbd>Enter</kbd> also works</p>
+  </footer>
+</body>
+</html>
