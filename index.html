@@ -45,6 +45,9 @@
              aria-hidden: letter-by-letter spans are noise for screen
              readers, so they get the plain text below instead. -->
         <div id="words" class="words" aria-hidden="true"></div>
+        <!-- One caret that JavaScript moves to the next letter. A single
+             element can glide smoothly; a border on each letter can't. -->
+        <div id="caret" class="caret" aria-hidden="true"></div>
         <p id="target-text" class="visually-hidden"></p>
 
         <!-- The real input. It's invisible and sits on top of the words:

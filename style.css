@@ -1,0 +1,479 @@
+/* ===== Design tokens ===== */
+/* Dark by default: typed text stands out best on a dark background */
+:root {
+  --color-bg: #2c2e31;
+  --color-surface: #232427;
+  --color-text: #d1d0c5; /* typed correctly */
+  --color-untyped: #646669; /* not typed yet */
+  --color-accent: #e2b714; /* caret, live stats, highlights */
+  --color-error: #ca4754;
+  --color-error-extra: #7e2a33; /* letters typed past the end of a word */
+  --color-muted: #8a8c8f;
+
+  --font-mono: ui-monospace, "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --text-size: 1.6rem;
+  --line-height: 2.4; /* also used by JavaScript to scroll line by line */
+  --visible-lines: 3;
+  --radius: 10px;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f2efe6;
+    --color-surface: #e6e1d3;
+    --color-text: #2c2e31;
+    --color-untyped: #a3a09a;
+    --color-accent: #c8920a;
+    --color-error: #c43a48;
+    --color-error-extra: #e8a3ab;
+    --color-muted: #77746d;
+
+    color-scheme: light;
+  }
+}
+
+/* ===== Reset ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+h1,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* The hidden attribute must always win over classes that set display
+   (the lesson from the calculator's history panel) */
+[hidden] {
+  display: none !important;
+}
+
+/* Hidden on screen, still read by screen readers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* ===== Page ===== */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.container {
+  flex: 1;
+  width: 100%;
+  max-width: 1000px;
+  margin-inline: auto;
+  padding: 1rem 1.5rem 3rem;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  margin-inline: auto;
+  padding: 1.5rem;
+}
+
+.logo {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.logo span {
+  color: var(--color-accent);
+}
+
+.best {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.best strong {
+  color: var(--color-accent);
+}
+
+.site-footer {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+/* A key on a keyboard */
+kbd {
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--color-surface);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.5rem;
+}
+
+.icon-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+/* ===== Settings ===== */
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  width: fit-content;
+  margin: 0 auto 3rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.settings__group {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* A thin line between the two groups */
+.settings__group + .settings__group {
+  padding-left: 1rem;
+  border-left: 2px solid var(--color-bg);
+}
+
+.chip {
+  padding: 0.3rem 0.7rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.chip:hover {
+  color: var(--color-text);
+}
+
+.chip[aria-pressed="true"] {
+  color: var(--color-accent);
+}
+
+/* ===== Live stats ===== */
+.live-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  /* Faded until the test starts, so nothing distracts before you type */
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.test--running .live-stats {
+  opacity: 1;
+}
+
+/* ===== Typing area ===== */
+.typing-area {
+  position: relative; /* the input, caret and hint are placed inside it */
+}
+
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.6em; /* the space between words */
+  /* Show 3 lines; the rest are scrolled away as you go (Step 10) */
+  height: calc(var(--text-size) * var(--line-height) * var(--visible-lines));
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+  color: var(--color-untyped);
+  user-select: none;
+  transition: filter 0.2s;
+}
+
+.word {
+  display: flex;
+}
+
+/* A finished word with a mistake in it gets a red underline */
+.word--error {
+  text-decoration: underline var(--color-error);
+  text-underline-offset: 0.35em;
+}
+
+.letter--correct {
+  color: var(--color-text);
+}
+
+.letter--incorrect {
+  color: var(--color-error);
+}
+
+/* Letters you typed beyond the end of the word */
+.letter--extra {
+  color: var(--color-error-extra);
+}
+
+/* The real input: invisible, covering the words so a tap focuses it */
+.typing-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: default;
+}
+
+/* The caret: a thin bar that JavaScript slides from letter to letter */
+.caret {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: calc(var(--text-size) * 1.3);
+  border-radius: 1px;
+  background: var(--color-accent);
+  pointer-events: none; /* clicks go through it to the input */
+  transition: transform 0.08s linear;
+  animation: blink 1s step-end infinite;
+}
+
+/* Solid while typing; it only blinks when you've stopped */
+.test--running .caret {
+  animation: none;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Lost focus: blur the words and show the hint on top */
+.typing-area--blurred .words {
+  filter: blur(5px);
+}
+
+.typing-area--blurred .caret {
+  visibility: hidden;
+}
+
+.focus-hint {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+.test__actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+/* ===== Results ===== */
+.results {
+  display: grid;
+  gap: 2rem;
+  justify-items: center;
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.results__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 3rem;
+}
+
+.results__label {
+  color: var(--color-muted);
+  font-size: 1.25rem;
+}
+
+.results__value {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.results__badge {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.results__details {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem 2.5rem;
+}
+
+.results__details dt {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.results__details dd {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--color-accent);
+}
+
+/* ===== Chart (drawn in Step 8) ===== */
+.chart {
+  width: 100%;
+}
+
+.chart__svg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+
+.chart__caption {
+  margin-top: 0.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.chart__grid {
+  stroke: var(--color-surface);
+  stroke-width: 1;
+}
+
+.chart__label {
+  fill: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.chart__wpm {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart__raw {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.chart__error {
+  fill: var(--color-error);
+}
+
+/* ===== Small screens ===== */
+@media (max-width: 600px) {
+  :root {
+    --text-size: 1.2rem;
+  }
+
+  .settings__group + .settings__group {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .results__value {
+    font-size: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    transition: none;
+    animation: none;
+  }
+
+  .results,
+  .words,
+  .live-stats {
+    animation: none;
+    transition: none;
+  }
+}
