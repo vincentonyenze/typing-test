@@ -9,7 +9,15 @@ import {
   nextWord,
   previousWord,
 } from "./typing.js";
-import { elements, renderWords, renderWord, moveCaret, renderFocus } from "./ui.js";
+import { accuracy } from "./stats.js";
+import {
+  elements,
+  renderWords,
+  renderWord,
+  moveCaret,
+  renderFocus,
+  renderLiveStats,
+} from "./ui.js";
 
 // Enough words for a fast typist; Step 10 adds more as you go
 const WORD_COUNT = 60;
@@ -27,6 +35,7 @@ function update(before) {
     renderWord(index, typing.words[index], typed, isFinished);
   }
   moveCaret(currentIndex(typing), currentText(typing).length);
+  renderLiveStats({ accuracy: accuracy(typing) });
 }
 
 // ===== Typing =====

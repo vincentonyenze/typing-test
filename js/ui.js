@@ -10,6 +10,9 @@ export const elements = {
   caret: document.getElementById("caret"),
   input: document.getElementById("typing-input"),
   focusHint: document.getElementById("focus-hint"),
+  liveTime: document.getElementById("live-time"),
+  liveWpm: document.getElementById("live-wpm"),
+  liveAccuracy: document.getElementById("live-accuracy"),
 };
 
 // ===== Words =====
@@ -70,6 +73,14 @@ export function moveCaret(wordIndex, letterIndex) {
   // transform instead of left/top: the browser can move it without
   // re-working out the layout of the page, so it stays smooth
   elements.caret.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+// ===== Live stats =====
+// Whole numbers only: a WPM of 72.3816 is just noise while you type
+export function renderLiveStats({ wpm, accuracy }) {
+  if (wpm !== undefined) elements.liveWpm.textContent = Math.round(wpm);
+  // floor, not round: 99.6% shouldn't show as 100% when you made a mistake
+  if (accuracy !== undefined) elements.liveAccuracy.textContent = Math.floor(accuracy);
 }
 
 // ===== Focus =====
