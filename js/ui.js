@@ -76,11 +76,18 @@ export function moveCaret(wordIndex, letterIndex) {
 }
 
 // ===== Live stats =====
-// Whole numbers only: a WPM of 72.3816 is just noise while you type
-export function renderLiveStats({ wpm, accuracy }) {
+// Whole numbers only: a WPM of 72.3816 is just noise while you type.
+// Only the values passed in are updated.
+export function renderLiveStats({ seconds, wpm, accuracy }) {
+  if (seconds !== undefined) elements.liveTime.textContent = seconds;
   if (wpm !== undefined) elements.liveWpm.textContent = Math.round(wpm);
   // floor, not round: 99.6% shouldn't show as 100% when you made a mistake
   if (accuracy !== undefined) elements.liveAccuracy.textContent = Math.floor(accuracy);
+}
+
+// Brighter stats and a solid caret while the test is running
+export function renderRunning(isRunning) {
+  elements.test.classList.toggle("test--running", isRunning);
 }
 
 // ===== Focus =====
