@@ -11,7 +11,13 @@ import {
   previousWord,
   isComplete,
 } from "./typing.js";
-import { accuracy, calculateStats, correctWordCharacters, wordsPerMinute } from "./stats.js";
+import {
+  accuracy,
+  calculateStats,
+  correctWordCharacters,
+  wordsPerMinute,
+  takeSample,
+} from "./stats.js";
 import { createTimer } from "./timer.js";
 import {
   elements,
@@ -21,6 +27,9 @@ import {
   renderFocus,
   renderLiveStats,
   renderRunning,
+  showResults,
+  showTest,
+  redrawChart,
 } from "./ui.js";
 
 // Enough words for a fast typist; Step 10 adds more as you go
@@ -33,11 +42,14 @@ const settings = { durationSeconds: 30 };
 let status = "ready";
 let typing = null;
 let timer = null;
+// One snapshot per second, for the chart on the results screen
+let samples = [];
 
 // ===== Starting and finishing =====
 function newTest() {
   timer?.stop();
   status = "ready";
+  samples = [];
   typing = createTyping(generateWords(WORD_COUNT));
   timer = createTimer({
     limitMs: settings.durationSeconds * 1000,
@@ -52,6 +64,7 @@ function newTest() {
   moveCaret(0, 0);
   renderRunning(false);
   renderLiveStats({ seconds: settings.durationSeconds, wpm: 0, accuracy: 100 });
+  showTest();
   elements.input.focus();
 }
 
@@ -70,14 +83,16 @@ function finish() {
   renderRunning(false);
   elements.input.disabled = true; // no more typing into a finished test
 
-  // Step 8 shows these on a results screen
-  const stats = calculateStats(typing, timer.elapsed());
-  console.table({
-    wpm: Math.round(stats.wpm),
-    raw: Math.round(stats.raw),
-    accuracy: `${stats.accuracy.toFixed(1)}%`,
-    ...stats.characters,
-    seconds: (stats.elapsedMs / 1000).toFixed(1),
+  // The last part-second gets a sample too (e.g. 30.0s, or 12.4s for a quote)
+  const elapsedMs = timer.elapsed();
+  if ((samples.at(-1)?.elapsedMs ?? 0) < elapsedMs) {
+    samples.push(takeSample(typing, elapsedMs, samples.at(-1)));
+  }
+
+  showResults({
+    stats: calculateStats(typing, elapsedMs),
+    samples,
+    modeLabel: `words ${settings.durationSeconds}s`,
   });
 }
 
@@ -94,6 +109,15 @@ function handleTick(elapsedMs) {
   // WPM swings wildly in the first second (2 letters in 0.1s = 240 WPM!)
   if (elapsedMs >= 1000 && wpm !== lastShown.wpm) renderLiveStats({ wpm });
   lastShown = { seconds: secondsLeft, wpm };
+
+  // A new whole second has passed: take a snapshot for the chart. (If
+  // frames were paused, e.g. in a hidden tab, skipped seconds are lost,
+  // and the chart just draws a straight line across the gap.)
+  const second = Math.floor(elapsedMs / 1000);
+  const lastSecond = Math.floor((samples.at(-1)?.elapsedMs ?? 0) / 1000);
+  if (second > lastSecond) {
+    samples.push(takeSample(typing, second * 1000, samples.at(-1)));
+  }
 }
 
 // ===== Drawing =====
@@ -174,6 +198,9 @@ elements.input.addEventListener("focus", () => renderFocus(true));
 elements.input.addEventListener("blur", () => renderFocus(status === "finished"));
 elements.focusHint.addEventListener("click", focusInput);
 document.getElementById("restart-btn").addEventListener("click", newTest);
+elements.againBtn.addEventListener("click", newTest);
+// The chart is drawn at its size on screen, so redraw it if that changes
+window.addEventListener("resize", () => redrawChart(samples));
 document.addEventListener("keydown", handlePageKeydown);
 
 newTest();

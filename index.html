@@ -70,7 +70,8 @@
 
     <!-- Results, shown when the time is up or the quote is finished -->
     <section id="results" class="results" aria-labelledby="results-title" hidden>
-      <h1 id="results-title" class="visually-hidden">Results</h1>
+      <!-- Focused when the results appear, so screen readers start here -->
+      <h1 id="results-title" class="visually-hidden" tabindex="-1">Results</h1>
 
       <div class="results__main">
         <div class="results__big">

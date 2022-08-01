@@ -76,6 +76,28 @@ export function accuracy(state) {
   return (state.correct / presses) * 100;
 }
 
+// ===== Samples for the chart =====
+// A snapshot taken every second during the test:
+//   wpm    your overall WPM so far (smooth: settles as the test goes on)
+//   raw    how fast you pressed keys in just this last interval (jumpy:
+//          shows bursts and hesitations)
+//   errors wrong key presses in this interval
+// `previous` is the last snapshot, so we can tell what happened since.
+export function takeSample(state, elapsedMs, previous = null) {
+  const presses = state.correct + state.incorrect;
+  const since = previous ?? { elapsedMs: 0, presses: 0, incorrect: 0 };
+
+  return {
+    elapsedMs,
+    wpm: wordsPerMinute(correctWordCharacters(state), elapsedMs),
+    raw: wordsPerMinute(presses - since.presses, elapsedMs - since.elapsedMs),
+    errors: state.incorrect - since.incorrect,
+    // Kept so the next sample can work out its own interval
+    presses,
+    incorrect: state.incorrect,
+  };
+}
+
 // Everything the results screen needs, in one object
 export function calculateStats(state, elapsedMs) {
   return {

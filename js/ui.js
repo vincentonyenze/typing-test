@@ -1,6 +1,7 @@
 // Everything that draws on the page. These functions read data and
 // update the DOM; they never decide anything about the test itself.
 import { letterStates } from "./typing.js";
+import { drawChart } from "./chart.js";
 
 export const elements = {
   test: document.getElementById("test"),
@@ -13,6 +14,18 @@ export const elements = {
   liveTime: document.getElementById("live-time"),
   liveWpm: document.getElementById("live-wpm"),
   liveAccuracy: document.getElementById("live-accuracy"),
+  results: document.getElementById("results"),
+  resultsTitle: document.getElementById("results-title"),
+  resultWpm: document.getElementById("result-wpm"),
+  resultAccuracy: document.getElementById("result-accuracy"),
+  resultRaw: document.getElementById("result-raw"),
+  resultChars: document.getElementById("result-chars"),
+  resultTime: document.getElementById("result-time"),
+  resultMode: document.getElementById("result-mode"),
+  newBest: document.getElementById("new-best"),
+  chart: document.getElementById("chart"),
+  chartCaption: document.getElementById("chart-caption"),
+  againBtn: document.getElementById("again-btn"),
 };
 
 // ===== Words =====
@@ -94,4 +107,43 @@ export function renderRunning(isRunning) {
 export function renderFocus(hasFocus) {
   elements.typingArea.classList.toggle("typing-area--blurred", !hasFocus);
   elements.focusHint.hidden = hasFocus;
+}
+
+// ===== Results =====
+// "30s" for a whole number of seconds, "12.4s" otherwise
+function formatSeconds(ms) {
+  const seconds = ms / 1000;
+  return Number.isInteger(seconds) ? `${seconds}s` : `${seconds.toFixed(1)}s`;
+}
+
+// Swap the test for the results
+export function showResults({ stats, samples, modeLabel }) {
+  const { correct, incorrect, extra, missed } = stats.characters;
+
+  elements.resultWpm.textContent = Math.round(stats.wpm);
+  elements.resultAccuracy.textContent = `${Math.floor(stats.accuracy)}%`;
+  elements.resultRaw.textContent = Math.round(stats.raw);
+  elements.resultChars.textContent = `${correct}/${incorrect}/${extra}/${missed}`;
+  elements.resultTime.textContent = formatSeconds(stats.elapsedMs);
+  elements.resultMode.textContent = modeLabel;
+  // A text version of the chart for screen readers
+  elements.chartCaption.textContent =
+    `Speed during the test: ${Math.round(stats.wpm)} WPM overall, ` +
+    `raw speed ranged from ${Math.round(Math.min(...samples.map((s) => s.raw)))} ` +
+    `to ${Math.round(Math.max(...samples.map((s) => s.raw)))}.`;
+
+  elements.test.hidden = true;
+  elements.results.hidden = false;
+  // Draw AFTER the results are visible: a hidden SVG has no size to measure
+  drawChart(elements.chart, samples);
+  elements.resultsTitle.focus();
+}
+
+export function redrawChart(samples) {
+  if (!elements.results.hidden) drawChart(elements.chart, samples);
+}
+
+export function showTest() {
+  elements.results.hidden = true;
+  elements.test.hidden = false;
 }

@@ -8,6 +8,7 @@ import {
   characterCounts,
   accuracy,
   calculateStats,
+  takeSample,
 } from "../js/stats.js";
 
 const MINUTE = 60_000;
@@ -124,5 +125,27 @@ describe("calculateStats", () => {
   test("raw is higher than WPM when there are mistakes", () => {
     const stats = calculateStats(typeAll(["the", "fox"], "thx fox"), MINUTE);
     assert.ok(stats.raw > stats.wpm);
+  });
+});
+
+describe("takeSample", () => {
+  test("measures the first second from the start", () => {
+    // 10 correct presses ("the fox ra") in 1 second
+    const sample = takeSample(typeAll(["the", "fox", "ran"], "the fox ra"), 1000);
+    assert.equal(sample.raw, wordsPerMinute(10, 1000)); // 120
+    assert.equal(sample.errors, 0);
+  });
+
+  test("measures only what happened since the last sample", () => {
+    const first = takeSample(typeAll(["the", "fox"], "the"), 1000);
+    // 2 more presses in the next second, one of them wrong
+    const second = takeSample(typeAll(["the", "fox"], "the x"), 2000, first);
+    assert.equal(second.raw, wordsPerMinute(2, 1000));
+    assert.equal(second.errors, 1);
+  });
+
+  test("works out the overall WPM so far", () => {
+    const state = typeAll(["the", "fox"], "the fox");
+    assert.equal(takeSample(state, 2000).wpm, wordsPerMinute(7, 2000));
   });
 });
