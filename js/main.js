@@ -1,7 +1,7 @@
 // Entry point: the only script loaded by index.html.
 // It connects the page (the input, the words) to the typing engine,
 // the timer and the stats.
-import { generateWords } from "./text.js";
+import { generateWords, pickQuote, splitWords } from "./text.js";
 import {
   createTyping,
   currentIndex,
@@ -20,6 +20,14 @@ import {
 } from "./stats.js";
 import { createTimer } from "./timer.js";
 import {
+  loadSettings,
+  saveSettings,
+  settingsKey,
+  settingsLabel,
+  timeLimitMs,
+} from "./settings.js";
+import { loadBests, saveBests, recordResult } from "./bests.js";
+import {
   elements,
   renderWords,
   renderWord,
@@ -30,13 +38,17 @@ import {
   showResults,
   showTest,
   redrawChart,
+  renderSettings,
+  renderBest,
 } from "./ui.js";
 
 // Enough words for a fast typist; Step 10 adds more as you go
 const WORD_COUNT = 60;
 
-// Settings are fixed for now; Step 9 adds the buttons to change them
-const settings = { durationSeconds: 30 };
+let settings = loadSettings();
+let bests = loadBests();
+// The quote from the last test, so the next one is different
+let lastQuote = null;
 
 // "ready": waiting for the first key | "running" | "finished"
 let status = "ready";
@@ -50,9 +62,9 @@ function newTest() {
   timer?.stop();
   status = "ready";
   samples = [];
-  typing = createTyping(generateWords(WORD_COUNT));
+  typing = createTyping(chooseWords());
   timer = createTimer({
-    limitMs: settings.durationSeconds * 1000,
+    limitMs: timeLimitMs(settings),
     onTick: handleTick,
     onEnd: finish,
   });
@@ -63,9 +75,18 @@ function newTest() {
   renderWords(typing.words);
   moveCaret(0, 0);
   renderRunning(false);
-  renderLiveStats({ seconds: settings.durationSeconds, wpm: 0, accuracy: 100 });
+  // A countdown starts at the limit; a quote's clock counts up from 0
+  renderLiveStats({ seconds: displaySeconds(0), wpm: 0, accuracy: 100 });
+  renderSettings(settings);
+  renderBest(bests[settingsKey(settings)]);
   showTest();
   elements.input.focus();
+}
+
+function chooseWords() {
+  if (settings.mode === "words") return generateWords(WORD_COUNT);
+  lastQuote = pickQuote({ previous: lastQuote });
+  return splitWords(lastQuote.text);
 }
 
 // The clock starts on your first key press, not when the page loads, so
@@ -89,11 +110,41 @@ function finish() {
     samples.push(takeSample(typing, elapsedMs, samples.at(-1)));
   }
 
-  showResults({
-    stats: calculateStats(typing, elapsedMs),
-    samples,
-    modeLabel: `words ${settings.durationSeconds}s`,
+  const stats = calculateStats(typing, elapsedMs);
+  const key = settingsKey(settings);
+  const recorded = recordResult(bests, key, {
+    wpm: stats.wpm,
+    accuracy: stats.accuracy,
+    at: Date.now(), // the date it happened, so Date.now() is right here
   });
+  bests = recorded.bests;
+  if (recorded.isNewBest) saveBests(bests);
+  renderBest(bests[key]);
+
+  const author = settings.mode === "quote" ? ` – ${lastQuote.author}` : "";
+  showResults({
+    stats,
+    samples,
+    modeLabel: settingsLabel(settings) + author,
+    isNewBest: recorded.isNewBest,
+  });
+}
+
+// ===== Settings =====
+// One listener for every chip (event delegation). Changing a setting
+// saves it and starts a fresh test with it.
+function handleSettingsClick(event) {
+  const chip = event.target.closest(".chip");
+  if (!chip) return;
+
+  const { mode, duration } = chip.dataset;
+  settings = {
+    ...settings,
+    ...(mode && { mode }),
+    ...(duration && { durationSeconds: Number(duration) }),
+  };
+  saveSettings(settings);
+  newTest();
 }
 
 // ===== Every frame while running =====
@@ -101,14 +152,21 @@ function finish() {
 // actually change: rewriting text that's the same is wasted work.
 let lastShown = { seconds: null, wpm: null };
 
+// Seconds left for a timed test, seconds so far for a quote
+function displaySeconds(elapsedMs) {
+  const limitMs = timeLimitMs(settings);
+  if (limitMs === null) return Math.floor(elapsedMs / 1000);
+  return Math.ceil((limitMs - elapsedMs) / 1000);
+}
+
 function handleTick(elapsedMs) {
-  const secondsLeft = Math.ceil((settings.durationSeconds * 1000 - elapsedMs) / 1000);
+  const seconds = displaySeconds(elapsedMs);
   const wpm = Math.round(wordsPerMinute(correctWordCharacters(typing), elapsedMs));
 
-  if (secondsLeft !== lastShown.seconds) renderLiveStats({ seconds: secondsLeft });
+  if (seconds !== lastShown.seconds) renderLiveStats({ seconds });
   // WPM swings wildly in the first second (2 letters in 0.1s = 240 WPM!)
   if (elapsedMs >= 1000 && wpm !== lastShown.wpm) renderLiveStats({ wpm });
-  lastShown = { seconds: secondsLeft, wpm };
+  lastShown = { seconds, wpm };
 
   // A new whole second has passed: take a snapshot for the chart. (If
   // frames were paused, e.g. in a hidden tab, skipped seconds are lost,
@@ -199,6 +257,7 @@ elements.input.addEventListener("blur", () => renderFocus(status === "finished")
 elements.focusHint.addEventListener("click", focusInput);
 document.getElementById("restart-btn").addEventListener("click", newTest);
 elements.againBtn.addEventListener("click", newTest);
+elements.settings.addEventListener("click", handleSettingsClick);
 // The chart is drawn at its size on screen, so redraw it if that changes
 window.addEventListener("resize", () => redrawChart(samples));
 document.addEventListener("keydown", handlePageKeydown);

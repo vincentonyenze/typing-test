@@ -26,7 +26,28 @@ export const elements = {
   chart: document.getElementById("chart"),
   chartCaption: document.getElementById("chart-caption"),
   againBtn: document.getElementById("again-btn"),
+  settings: document.querySelector(".settings"),
+  durationGroup: document.getElementById("duration-group"),
+  bestWpm: document.getElementById("best-wpm"),
 };
+
+// ===== Settings and best =====
+// Highlight the chosen chips. The time limits are hidden for quotes,
+// which run until you finish them.
+export function renderSettings(settings) {
+  for (const chip of elements.settings.querySelectorAll(".chip")) {
+    const isOn =
+      chip.dataset.mode === settings.mode ||
+      Number(chip.dataset.duration) === settings.durationSeconds;
+    chip.setAttribute("aria-pressed", String(isOn));
+  }
+  elements.durationGroup.hidden = settings.mode === "quote";
+}
+
+// best: { wpm, ... } for the current settings, or undefined if none yet
+export function renderBest(best) {
+  elements.bestWpm.textContent = best ? Math.round(best.wpm) : "–";
+}
 
 // ===== Words =====
 // One letter: <span class="letter letter--correct">q</span>
@@ -117,8 +138,9 @@ function formatSeconds(ms) {
 }
 
 // Swap the test for the results
-export function showResults({ stats, samples, modeLabel }) {
+export function showResults({ stats, samples, modeLabel, isNewBest }) {
   const { correct, incorrect, extra, missed } = stats.characters;
+  elements.newBest.hidden = !isNewBest;
 
   elements.resultWpm.textContent = Math.round(stats.wpm);
   elements.resultAccuracy.textContent = `${Math.floor(stats.accuracy)}%`;
