@@ -107,6 +107,17 @@ export function nextWord(state) {
   };
 }
 
+// Put more words on the end. A timed test never runs out of words: they're
+// topped up as you get near the end. Nothing you've typed changes.
+export function addWords(state, moreWords) {
+  return { ...state, words: [...state.words, ...moreWords] };
+}
+
+// How many words are left after the one you're on
+export function wordsLeft(state) {
+  return state.words.length - 1 - currentIndex(state);
+}
+
 // Backspace at the start of a word: go back into the previous word, but
 // only to fix it. A word you got right is locked, so you can't keep
 // backspacing through the whole text.

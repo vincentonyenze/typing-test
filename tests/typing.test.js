@@ -10,6 +10,8 @@ import {
   setCurrentText,
   nextWord,
   previousWord,
+  addWords,
+  wordsLeft,
 } from "../js/typing.js";
 
 // Type text the way the page does: letter by letter, a space moves on
@@ -123,5 +125,35 @@ describe("isComplete", () => {
 
   test("is false if the last word is wrong", () => {
     assert.equal(isComplete(typeAll(createTyping(["the", "fox"]), "the fix")), false);
+  });
+});
+
+describe("addWords", () => {
+  test("adds words to the end", () => {
+    const state = addWords(createTyping(["the", "fox"]), ["ran", "far"]);
+    assert.deepEqual(state.words, ["the", "fox", "ran", "far"]);
+  });
+
+  test("keeps everything you've typed", () => {
+    const before = typeAll(createTyping(["the", "fox"]), "the fo");
+    const after = addWords(before, ["ran"]);
+    assert.deepEqual(after.typed, before.typed);
+    assert.equal(after.correct, before.correct);
+  });
+
+  test("doesn't change the state it was given", () => {
+    const before = createTyping(["the"]);
+    addWords(before, ["fox"]);
+    assert.deepEqual(before.words, ["the"]);
+  });
+});
+
+describe("wordsLeft", () => {
+  test("counts the words after the current one", () => {
+    assert.equal(wordsLeft(typeAll(createTyping(["a", "b", "c", "d"]), "a ")), 2);
+  });
+
+  test("is 0 on the last word", () => {
+    assert.equal(wordsLeft(typeAll(createTyping(["a", "b"]), "a b")), 0);
   });
 });

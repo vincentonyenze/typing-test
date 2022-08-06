@@ -76,7 +76,21 @@ export function renderWords(words) {
     return element;
   });
   elements.words.replaceChildren(...elementsForWords);
+  elements.words.scrollTop = 0; // a new test starts at the first line
   elements.targetText.textContent = words.join(" ");
+}
+
+// Add words to the end without touching the ones already there
+export function appendWords(words) {
+  elements.words.append(
+    ...words.map((word) => {
+      const element = document.createElement("div");
+      element.className = "word";
+      fillWord(element, word, "");
+      return element;
+    })
+  );
+  elements.targetText.textContent += ` ${words.join(" ")}`;
 }
 
 // Redraw ONE word. Typing a letter only ever changes the current word, so
@@ -88,21 +102,43 @@ export function renderWord(index, target, typed, isFinished) {
   element.classList.toggle("word--error", isFinished && typed !== target);
 }
 
+// ===== Scrolling =====
+// Only 3 lines are visible. When you reach the 3rd, scroll so your line
+// becomes the 2nd: one finished line stays above you, new ones below.
+// Going back (Backspace into a previous word) scrolls back up.
+function keepLineVisible(word) {
+  const box = elements.words;
+  const lineHeight = word.offsetHeight;
+  const top = word.offsetTop - box.offsetTop; // from the top of all the words
+  const fromVisibleTop = top - box.scrollTop;
+
+  if (fromVisibleTop >= 2 * lineHeight || fromVisibleTop < 0) {
+    // scrollTop works on overflow: hidden too; it just has no scrollbar
+    box.scrollTop = Math.max(0, top - lineHeight);
+  }
+}
+
 // ===== Caret =====
 // Put the caret in front of letter `letterIndex` of word `wordIndex`, or
 // just after the last letter if you've typed to the end of the word.
+// Scrolls first if that word is on a line out of view.
 export function moveCaret(wordIndex, letterIndex) {
   const word = elements.words.children[wordIndex];
   if (!word) return;
+  keepLineVisible(word);
 
   const letters = word.children;
   const atEnd = letterIndex >= letters.length;
   const letter = letters[Math.min(letterIndex, letters.length - 1)];
 
   // offsetLeft/offsetTop are measured from .typing-area (the nearest
-  // positioned parent), the same box the caret is placed in
+  // positioned parent), the same box the caret is placed in. They ignore
+  // scrolling, so take the scrolled-away part off.
   const x = letter.offsetLeft + (atEnd ? letter.offsetWidth : 0);
-  const y = letter.offsetTop + (letter.offsetHeight - elements.caret.offsetHeight) / 2;
+  const y =
+    letter.offsetTop -
+    elements.words.scrollTop +
+    (letter.offsetHeight - elements.caret.offsetHeight) / 2;
 
   // transform instead of left/top: the browser can move it without
   // re-working out the layout of the page, so it stays smooth

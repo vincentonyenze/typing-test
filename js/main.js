@@ -10,6 +10,8 @@ import {
   nextWord,
   previousWord,
   isComplete,
+  addWords,
+  wordsLeft,
 } from "./typing.js";
 import {
   accuracy,
@@ -31,6 +33,7 @@ import {
   elements,
   renderWords,
   renderWord,
+  appendWords,
   moveCaret,
   renderFocus,
   renderLiveStats,
@@ -42,8 +45,12 @@ import {
   renderBest,
 } from "./ui.js";
 
-// Enough words for a fast typist; Step 10 adds more as you go
+// A timed test starts with this many words...
 const WORD_COUNT = 60;
+// ...and gets more whenever fewer than this many are left, so even the
+// fastest typist never reaches the end
+const TOP_UP_BELOW = 20;
+const TOP_UP_COUNT = 40;
 
 let settings = loadSettings();
 let bests = loadBests();
@@ -196,7 +203,11 @@ function update(before) {
 // The input box always holds just the word in progress. A space means
 // "next word". Splitting on every space also handles pasting or a phone
 // keyboard sending several words at once.
-function handleInput() {
+function handleInput(event) {
+  // While composing a character (e.g. typing é as ´ then e, or using a
+  // Chinese or Japanese keyboard), the box holds a half-finished
+  // character. Wait for compositionend, which calls this again.
+  if (event?.isComposing) return;
   if (status === "finished") return;
   if (status === "ready") start();
 
@@ -211,9 +222,18 @@ function handleInput() {
   // Keep the box in step with the engine (e.g. a space with nothing typed
   // is dropped, and extra letters past the limit are cut off)
   elements.input.value = currentText(typing);
+  topUpWords();
   update(before);
 
   if (isComplete(typing)) finish();
+}
+
+// Words mode: add more words before you run out
+function topUpWords() {
+  if (settings.mode !== "words" || wordsLeft(typing) >= TOP_UP_BELOW) return;
+  const more = generateWords(TOP_UP_COUNT);
+  typing = addWords(typing, more);
+  appendWords(more);
 }
 
 // Backspace in an empty box doesn't change its value, so there's no
@@ -249,8 +269,23 @@ function handlePageKeydown(event) {
   if (event.key.length === 1 && status !== "finished") focusInput();
 }
 
+// No pasting or dropping text in: that would make a test meaningless
+function blockInsert(event) {
+  event.preventDefault();
+}
+
+// Line breaks change when the window is resized, so the scroll position
+// and the caret have to be worked out again
+function handleResize() {
+  redrawChart(samples);
+  if (status !== "finished") moveCaret(currentIndex(typing), currentText(typing).length);
+}
+
 // ===== Init =====
 elements.input.addEventListener("input", handleInput);
+elements.input.addEventListener("compositionend", handleInput);
+elements.input.addEventListener("paste", blockInsert);
+elements.input.addEventListener("drop", blockInsert);
 elements.input.addEventListener("keydown", handleKeydown);
 elements.input.addEventListener("focus", () => renderFocus(true));
 elements.input.addEventListener("blur", () => renderFocus(status === "finished"));
@@ -258,8 +293,7 @@ elements.focusHint.addEventListener("click", focusInput);
 document.getElementById("restart-btn").addEventListener("click", newTest);
 elements.againBtn.addEventListener("click", newTest);
 elements.settings.addEventListener("click", handleSettingsClick);
-// The chart is drawn at its size on screen, so redraw it if that changes
-window.addEventListener("resize", () => redrawChart(samples));
+window.addEventListener("resize", handleResize);
 document.addEventListener("keydown", handlePageKeydown);
 
 newTest();

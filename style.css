@@ -300,6 +300,8 @@ kbd {
   background: var(--color-accent);
   pointer-events: none; /* clicks go through it to the input */
   transition: transform 0.08s linear;
+  /* Tell the browser this moves a lot, so it can prepare (its own layer) */
+  will-change: transform;
   animation: blink 1s step-end infinite;
 }
 
